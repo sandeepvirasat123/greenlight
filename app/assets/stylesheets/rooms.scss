@@ -1,132 +1,146 @@
-// BigBlueButton open source conferencing system - http://www.bigbluebutton.org/.
-//
-// Copyright (c) 2022 BigBlueButton Inc. and by respective authors (see below).
-//
-// This program is free software; you can redistribute it and/or modify it under the
-// terms of the GNU Lesser General Public License as published by the Free Software
-// Foundation; either version 3.0 of the License, or (at your option) any later
-// version.
-//
-// Greenlight is distributed in the hope that it will be useful, but WITHOUT ANY
-// WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-// PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License along
-// with Greenlight; if not, see <http://www.gnu.org/licenses/>.
+/* BigBlueButton open source conferencing system - http://www.bigbluebutton.org/.
+*
+* Copyright (c) 2018 BigBlueButton Inc. and by respective authors (see below).
+*
+* This program is free software; you can redistribute it and/or modify it under the
+* terms of the GNU Lesser General Public License as published by the Free Software
+* Foundation; either version 3.0 of the License, or (at your option) any later
+* version.
+*
+* BigBlueButton is distributed in the hope that it will be useful, but WITHOUT ANY
+* WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+* PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public License along
+* with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
+*/
 
-#room-card {
-  border: 2px solid transparent !important;
-  width: 305px;
+// Place all the styles related to the Rooms controller here.
+// They will automatically be included in application.css.
+// You can use Sass (SCSS) here: http://sass-lang.com/
 
-  @include media-breakpoint-down(xxl) {
-    width: 261px;
+.start-button {
+  font-size: 26px !important;
+}
+
+.thumbnail {
+  height: 60px !important;
+  width: auto;
+}
+
+.join-form {
+  font-size: 20px !important;
+}
+
+.moderator-code-label {
+  margin-top: 150px !important;
+}
+
+.home-indicator {
+  font-size: 22px !important;
+}
+
+.btn-del-room {
+  width: 70% !important;
+}
+
+.edit_hover_class a{
+  visibility: hidden;
+}
+
+.edit_hover_class:hover a {
+  visibility: visible;
+}
+
+#room-settings-dropdown-label {
+  vertical-align: middle;
+  padding-top: 12px;
+}
+
+.room-block {
+  &:not(.current) {
+    .stamp {
+      opacity: 0.5;
+    }
   }
+}
 
-  @include media-breakpoint-down(xl) {
-    width: 216px;
-  }
-
-  @include media-breakpoint-down(md) {
-    width: 245px;
-  }
-
-  @include media-breakpoint-down(sm) {
-    min-width: 245px;
-    width: 100%;
-  }
+#create-room-block {
+  border: 1px dashed lightgray;
 
   &:hover {
-    box-shadow: 0 0 10px rgba(33,33,33,.2) !important;
-  }
-
-  .room-icon {
-    width: 75px;
-    height: 75px;
-    background-color: var(--brand-color-light);
-  }
-
-  .card-body {
-    &:hover {
-      cursor: pointer;
-    }
-  }
-
-  .room-card-badges {
-    margin-bottom: auto;
-    margin-left: auto;
-  }
-
-  .card-footer {
-    svg {
-      &:hover {
-        color: var(--brand-color) !important;
-      }
-    }
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.04);
   }
 }
 
-.tab-content {
-  padding: 0%;
+.allow-icon-click{
+  pointer-events: auto;
 }
 
-
-.room-settings-row {
-  line-height: 28px;
+.cant-create-rooms-title{
+  align-items: center;
+  justify-content: center;
 }
 
-#room-settings {
-  .access-code-input {
-    position: relative;
-    button {
-      position: absolute;
-      right: 5px;
-      top: 0px;
-    }
-  }
+.avatar-xxxl{
+  width: 8rem;
+  height: 8rem;
+  line-height: 8rem;
+  max-width: 8rem;
+  margin-top: -6rem;
+  font-size: 5rem;
 }
 
-// Room Online Badges
-.participants-badge {
-  background-color: whitesmoke !important;
-  color: gray;
-  height: 24px;
-
-  svg {
-    padding-bottom: 2px;
-  }
+.bootstrap-select .dropdown-menu li.active small.text-muted{
+  color: #9aa0ac !important
 }
 
-.online-badge {
-  background-color: whitesmoke !important;
-  height: 24px;
-  line-height: 18px;
+.not-saved {
+  color: grey;
+  background: rgba(0, 40, 100, 0.12);
 }
 
-.shared-badge {
-  background-color: whitesmoke !important;
-  height: 24px;
-  line-height: 18px;
-  font-weight: normal;
-  color: gray;
+.dropdown-menu.show {
+  min-height: 0px !important;
 }
 
-.blinking-green-dot {
-  animation: blinker 2s linear infinite;
-  width: 10px;
-  height: 10px;
-  display: inline-block;
-  border: 1px solid green;
-  background-color: green;
-  border-radius: 100%;
-}
-@keyframes blinker {
-  50% {
-    opacity: 0.6;
-  }
+.remove-shared {
+  text-decoration: line-through;
 }
 
-#rooms-list-empty {
-  svg {
-    padding-top: 2rem;
+.enabled-setting {
+  background: lightgray;
+  pointer-events: none;
+}
+
+#recording-table .edit_hover_class {
+  word-break: break-word;
+  white-space: normal;
+}
+
+#room-owner-name {
+  line-height: 12px;
+}
+
+.create-room-button {
+  width: 49%;
+}
+
+#presentation-upload-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-right: 75px;
+}
+
+#clear-room-search {
+  z-index: 9;
+  position: absolute;
+  right: 15px;
+  top: 8px;
+
+  &:hover {
+    cursor: pointer;
   }
 }

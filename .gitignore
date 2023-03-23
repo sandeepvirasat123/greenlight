@@ -9,46 +9,45 @@
 
 # Ignore the default SQLite database.
 /db/*.sqlite3
-/db/*.sqlite3-*
+/db/*.sqlite3-journal
+
+# Ignore static assets.
+/public/system/**
+/public/assets/**
+/public/b/**
+
+# Ignore uploaded files
+/storage
+
+# Ignore production paths.
+/db/production
+/db/production-postgres
 
 # Ignore all logfiles and tempfiles.
 /log/*
-/tmp/*
+/tmp
 !/log/.keep
-!/tmp/.keep
 
-# Ignore pidfiles, but keep the directory.
-/tmp/pids/*
-!/tmp/pids/
-!/tmp/pids/.keep
+# Ignore Byebug command history file.
+.byebug_history
 
-# Ignore uploaded files in development.
-/storage/*
-!/storage/.keep
-/tmp/storage/*
-!/tmp/storage/
-!/tmp/storage/.keep
+# Ignore environment configuration.
+.env
+env
 
-/public/assets
-
-# Ignore master key for decrypting credentials and more.
-/config/master.key
-
-/app/assets/builds/*
-!/app/assets/builds/.keep
-
+# Ignore yarn configs
 /node_modules
 
 # IDEs
 .idea
-/.idea/
 .idea/**
 .vscode
-/.vscode/
 .vscode/**
 
-# Ignore dev settings.
-.ruby-version
+config/terms.md
+coverage*
 
-# Ignore environment configuration.
-.env*
+/atom-sftp-sync.json
+
+# Needed for rspec's --only-failures command
+spec/failures.txt

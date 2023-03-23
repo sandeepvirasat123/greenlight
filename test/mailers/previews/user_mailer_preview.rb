@@ -1,41 +1,73 @@
-# BigBlueButton open source conferencing system - http://www.bigbluebutton.org/.
-#
-# Copyright (c) 2022 BigBlueButton Inc. and by respective authors (see below).
-#
-# This program is free software; you can redistribute it and/or modify it under the
-# terms of the GNU Lesser General Public License as published by the Free Software
-# Foundation; either version 3.0 of the License, or (at your option) any later
-# version.
-#
-# Greenlight is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License along
-# with Greenlight; if not, see <http://www.gnu.org/licenses/>.
-
 # frozen_string_literal: true
 
 class UserMailerPreview < ActionMailer::Preview
-  def test_email
-    UserMailer.with(to: 'user@users.com', subject: 'Test Subject').test_email
+  def initialize(_params)
+    super
+    @settings = Setting.find_by(provider: "greenlight")
   end
 
-  def reset_password_email
-    fake_user = Struct.new(:name, :email)
-
-    UserMailer.with(user: fake_user.new('user', 'user@users.com'), reset_url: 'https://example.com/reset').reset_password_email
+  # Preview this email at
+  # http://localhost:3000/rails/mailers/user_mailer/password_reset
+  def password_reset
+    user = User.first
+    user.reset_token = User.new_token
+    url = "http://example.com/password_resets/#{user.reset_token}/edit?email=#{user.email}"
+    UserMailer.password_reset(user, url, @logo, @color)
   end
 
-  def activate_account_email
-    fake_user = Struct.new(:name, :email)
-
-    UserMailer.with(user: fake_user.new('user', 'user@users.com'), activation_url: 'https://example.com/activate').activate_account_email
+  # Preview this email at
+  # http://localhost:3000/rails/mailers/user_mailer/verify_email
+  def verify_email
+    user = User.first
+    url = "http://example.com/u/verify/confirm/#{user.uid}"
+    UserMailer.verify_email(user, url, @logo, @color)
   end
 
-  def invitation_email
-    fake_user = Struct.new(:name, :email)
+  # Preview this email at
+  # http://localhost:3000/rails/mailers/user_mailer/invite_email
+  def invite_email
+    UserMailer.invite_email("Example User", "from@example.com", DateTime.now, "http://example.com/signup", @settings)
+  end
 
-    UserMailer.with(user: fake_user.new('user', 'user@users'), invitation_url: 'https://example.com/invite').invitation_email
+  # Preview this email at
+  # http://localhost:3000/rails/mailers/user_mailer/approve_user
+  def approve_user
+    user = User.first
+    UserMailer.approve_user(user, "http://example.com/", @logo, @color)
+  end
+
+  # Preview this email at
+  # http://localhost:3000/rails/mailers/user_mailer/approval_user_signup
+  def approval_user_signup
+    user = User.first
+    UserMailer.approval_user_signup(user, "http://example.com/", @logo, @color, "test@example.com")
+  end
+
+  # Preview this email at
+  # http://localhost:3000/rails/mailers/user_mailer/invite_user_signup
+  def invite_user_signup
+    user = User.first
+    UserMailer.invite_user_signup(user, "http://example.com/", @logo, @color, "test@example.com")
+  end
+
+  # http://localhost:3000/rails/mailers/user_mailer/user_promoted
+  def user_promoted
+    user = User.first
+    role = Role.first
+    url = "http://example.com"
+    logo_image = "https://raw.githubusercontent.com/bigbluebutton/greenlight/master/app/assets/images/logo_with_text.png"
+    user_color = "#467fcf"
+    UserMailer.user_promoted(user, role, url, logo_image, user_color)
+  end
+
+  # Preview this email at
+  # http://localhost:3000/rails/mailers/user_mailer/user_demoted
+  def user_demoted
+    user = User.first
+    role = Role.first
+    url = "http://example.com"
+    logo_image = "https://raw.githubusercontent.com/bigbluebutton/greenlight/master/app/assets/images/logo_with_text.png"
+    user_color = "#467fcf"
+    UserMailer.user_demoted(user, role, url, logo_image, user_color)
   end
 end

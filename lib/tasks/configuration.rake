@@ -1,71 +1,48 @@
-# BigBlueButton open source conferencing system - http://www.bigbluebutton.org/.
-#
-# Copyright (c) 2022 BigBlueButton Inc. and by respective authors (see below).
-#
-# This program is free software; you can redistribute it and/or modify it under the
-# terms of the GNU Lesser General Public License as published by the Free Software
-# Foundation; either version 3.0 of the License, or (at your option) any later
-# version.
-#
-# Greenlight is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License along
-# with Greenlight; if not, see <http://www.gnu.org/licenses/>.
-
 # frozen_string_literal: true
 
-require_relative 'task_helpers'
+require 'net/http'
+require 'nokogiri'
+require 'digest/sha1'
 
-namespace :configuration do
-  desc 'Checks that the application was configured correctly'
+namespace :conf do
+  desc "Check Configuration"
   task check: :environment do
-    required_env_vars = %w[SECRET_KEY_BASE BIGBLUEBUTTON_ENDPOINT BIGBLUEBUTTON_SECRET DATABASE_URL REDIS_URL].freeze
+    ENV_VARIABLES = %w(SECRET_KEY_BASE BIGBLUEBUTTON_ENDPOINT BIGBLUEBUTTON_SECRET)
 
     # Initial check that variables are set
-    info 'Checking required environment variables:'
-    required_env_vars.each do |var|
+    print "\nChecking environment"
+    ENV_VARIABLES.each do |var|
       failed("#{var} not set correctly") if ENV[var].blank?
     end
     passed
 
-    info 'Checking connection to Postgres Database:'
-    begin
-      ActiveRecord::Base.establish_connection # Establishes connection
-      ActiveRecord::Base.connection # Calls connection object
-      failed('Unable to connect to Database') unless ActiveRecord::Base.connected?
-    rescue StandardError => e
-      failed("Unable to connect to Database - #{e}")
-    end
+    endpoint = fix_endpoint_format(ENV['BIGBLUEBUTTON_ENDPOINT'])
+
+    # Tries to establish a connection to the BBB server from Greenlight
+    print "Checking Connection"
+    test_request(endpoint)
     passed
 
-    info 'Checking connection to Redis Cache:'
-    begin
-      Redis.new.ping
-    rescue StandardError => e
-      failed("Unable to connect to Redis - #{e}")
-    end
+    # Tests the checksum on the getMeetings api call
+    print "Checking Secret"
+    checksum = Digest::SHA1.hexdigest("getMeetings#{ENV['BIGBLUEBUTTON_SECRET']}")
+    test_request("#{endpoint}getMeetings?checksum=#{checksum}")
     passed
 
-    info 'Checking connection to BigBlueButton:'
-    test_request(Rails.configuration.bigbluebutton_endpoint)
-    checksum = Digest::SHA1.hexdigest("getMeetings#{Rails.configuration.bigbluebutton_secret}")
-    test_request("#{Rails.configuration.bigbluebutton_endpoint}getMeetings?checksum=#{checksum}")
-    passed
-
-    if ENV['SMTP_SERVER'].present?
-      info 'Checking connection to SMTP Server'
-      begin
-        UserMailer.with(to: ENV.fetch('SMTP_SENDER_EMAIL', nil), subject: ENV.fetch('SMTP_SENDER_EMAIL', nil)).test_email.deliver_now
-      rescue StandardError => e
-        failed("Unable to connect to SMTP Server - #{e}")
-      end
+    if ENV['ALLOW_MAIL_NOTIFICATIONS'] == 'true'
+      # Tests the configuration of the SMTP Server
+      print "Checking SMTP connection"
+      test_smtp
       passed
     end
-
-    exit 0
   end
+end
+
+def test_smtp
+  TestMailer.test_email(ENV.fetch('SMTP_SENDER', 'notifications@example.com'),
+                        ENV.fetch('SMTP_TEST_RECIPIENT', 'notifications@example.com')).deliver
+rescue => e
+  failed("Error connecting to SMTP - #{e}")
 end
 
 # Takes the full URL including the protocol
@@ -74,15 +51,35 @@ def test_request(url)
   res = Net::HTTP.get(uri)
 
   doc = Nokogiri::XML(res)
-  failed("Could not get a valid response from BigBlueButton server - #{res}") if doc.css('returncode').text != 'SUCCESS'
-rescue StandardError => e
+  failed("Could not get a valid response from BigBlueButton server - #{res}") if doc.css("returncode").text != "SUCCESS"
+rescue => e
   failed("Error connecting to BigBlueButton server - #{e}")
 end
 
-def passed
-  success 'Passed'
+def fix_endpoint_format(url)
+  # Fix endpoint format if required.
+  url += "/" unless url.ends_with?('/')
+  url += "api/" if url.ends_with?('bigbluebutton/')
+  url += "bigbluebutton/api/" unless url.ends_with?('bigbluebutton/api/')
+
+  url
 end
 
 def failed(msg)
-  err "Failed - #{msg}"
+  print(": Failed\n#{msg}\n")
+  exit
+end
+
+def passed
+  print(": Passed\n")
+end
+
+class TestMailer < ActionMailer::Base
+  def test_email(sender, recipient)
+    mail(to: recipient,
+      from: sender,
+      subject: "Greenlight Email Test",
+      body: "This is what people with plain text mail readers will see.",
+      content_type: "text/plain",)
+  end
 end

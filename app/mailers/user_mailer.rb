@@ -1,63 +1,106 @@
+# frozen_string_literal: true
+
 # BigBlueButton open source conferencing system - http://www.bigbluebutton.org/.
 #
-# Copyright (c) 2022 BigBlueButton Inc. and by respective authors (see below).
+# Copyright (c) 2018 BigBlueButton Inc. and by respective authors (see below).
 #
 # This program is free software; you can redistribute it and/or modify it under the
 # terms of the GNU Lesser General Public License as published by the Free Software
 # Foundation; either version 3.0 of the License, or (at your option) any later
 # version.
 #
-# Greenlight is distributed in the hope that it will be useful, but WITHOUT ANY
+# BigBlueButton is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 # PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License along
-# with Greenlight; if not, see <http://www.gnu.org/licenses/>.
-
-# frozen_string_literal: true
+# with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
 
 class UserMailer < ApplicationMailer
-  before_action :preset, :branding # :preset must be called before :branding.
+  include ApplicationHelper
+  include ThemingHelper
 
-  # Sends a test email
-  def test_email
-    mail(to: params[:to], subject: params[:subject])
+  default from: Rails.configuration.smtp_sender
+
+  def verify_email(user, url, settings)
+    @settings = settings
+    @user = user
+    @url = url
+    @image = logo_image
+    @color = user_color
+    mail(to: @user.email, subject: t('landing.welcome'))
   end
 
-  def reset_password_email
-    @user = params[:user]
-    @reset_url = params[:reset_url]
-
-    mail(to: email_address_with_name(@user.email, @user.name), subject: t('email.reset.password_reset'))
+  def password_reset(user, url, settings)
+    @settings = settings
+    @user = user
+    @url = url
+    @image = logo_image
+    @color = user_color
+    mail to: user.email, subject: t('reset_password.subtitle')
   end
 
-  def activate_account_email
-    @user = params[:user]
-    @activation_url = params[:activation_url]
-
-    mail(to: email_address_with_name(@user.email, @user.name), subject: t('email.activation.account_activation'))
+  def user_promoted(user, role, url, settings)
+    @settings = settings
+    @url = url
+    @admin_url = "#{url}admins"
+    @image = logo_image
+    @color = user_color
+    @role = translated_role_name(role)
+    @admin_role = role.get_permission("can_manage_users") ||
+                  role.get_permission("can_manage_rooms_recordings") ||
+                  role.get_permission("can_edit_site_settings") ||
+                  role.get_permission("can_edit_roles")
+    mail to: user.email, subject: t('mailer.user.promoted.subtitle', role: translated_role_name(role))
   end
 
-  def invitation_email
-    @email = params[:email]
-    @name = params[:name]
-    @signup_url = params[:signup_url]
-    @email = params[:email]
-
-    mail(to: @email, subject: t('email.invitation.invitation_to_join'))
+  def user_demoted(user, role, url, settings)
+    @settings = settings
+    @url = url
+    @root_url = url
+    @image = logo_image
+    @color = user_color
+    @role = translated_role_name(role)
+    mail to: user.email, subject: t('mailer.user.demoted.subtitle', role: translated_role_name(role))
   end
 
-  private
-
-  def preset
-    @provider = params[:provider] || 'greenlight'
-    @base_url = params[:base_url]
+  def invite_email(name, email, invite_date, url, settings)
+    @settings = settings
+    @name = name
+    @email = email
+    @url = url
+    @image = logo_image
+    @color = user_color
+    @date = "#{(invite_date + 2.days).strftime('%b %d, %Y %-I:%M%P')} UTC"
+    mail to: email, subject: t('mailer.user.invite.subject')
   end
 
-  def branding
-    branding_hash = SiteSetting.includes(:setting).where(provider: @provider, settings: { name: %w[PrimaryColor BrandingImage] })
-                               .pluck(:name, :value).to_h
-    @brand_image = ActionController::Base.helpers.image_url(branding_hash['BrandingImage'], host: @base_url)
-    @brand_color = branding_hash['PrimaryColor']
+  def approve_user(user, url, settings)
+    @settings = settings
+    @user = user
+    @url = url
+    @image = logo_image
+    @color = user_color
+    mail to: user.email, subject: t('mailer.user.approve.subject')
+  end
+
+  def approval_user_signup(user, url, admin_emails, settings)
+    @settings = settings
+    @user = user
+    @url = url
+    @image = logo_image
+    @color = user_color
+
+    mail to: admin_emails, subject: t('mailer.user.approve.signup.subject')
+  end
+
+  def invite_user_signup(user, url, admin_emails, settings)
+    @settings = settings
+    @user = user
+    @url = url
+    @image = logo_image
+    @color = user_color
+
+    mail to: admin_emails, subject: t('mailer.user.invite.signup.subject')
   end
 end

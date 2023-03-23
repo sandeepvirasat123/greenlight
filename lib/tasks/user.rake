@@ -1,61 +1,80 @@
-# BigBlueButton open source conferencing system - http://www.bigbluebutton.org/.
-#
-# Copyright (c) 2022 BigBlueButton Inc. and by respective authors (see below).
-#
-# This program is free software; you can redistribute it and/or modify it under the
-# terms of the GNU Lesser General Public License as published by the Free Software
-# Foundation; either version 3.0 of the License, or (at your option) any later
-# version.
-#
-# Greenlight is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License along
-# with Greenlight; if not, see <http://www.gnu.org/licenses/>.
-
 # frozen_string_literal: true
 
-require_relative 'task_helpers'
+require 'bigbluebutton_api'
 
 namespace :user do
-  desc 'Create a user'
-  task :create, %i[name email password role] => :environment do |_task, args|
-    # Default values.
-    user = {
-      provider: 'greenlight',
-      verified: true,
-      status: :active,
-      language: I18n.default_locale
-    }.merge(args)
+  desc "Creates a user account"
+  task :create, [:name, :email, :password, :role, :validate, :provider] => :environment do |_task, args|
+    u = {
+      name: args[:name],
+      password: args[:password],
+      email: args[:email],
+      role: args[:role] || "user",
+      provider: args[:provider] || "greenlight"
+    }
 
-    check_role!(user:)
-    user = User.new(user)
+    if u[:role] == "admin"
+      # Set default variables
+      u[:name] = "Administrator" if u[:name].blank?
+      u[:password] = Rails.configuration.admin_password_default if u[:password].blank?
+      u[:email] = "admin@example.com" if u[:email].blank?
+    elsif u[:name].blank? || u[:password].blank? || u[:email].blank?
+      # Check that all fields exist
+      puts red "Missing Arguments"
+      exit 2 # 2 for missing arguments
+    end
 
-    display_user_errors(user:) unless user.save
+    # Create the default roles if not already created
+    Role.create_default_roles(u[:provider]) if Role.where(provider: u[:provider]).count.zero?
 
-    success 'User account was created successfully!'
-    info "  Name: #{user.name}"
-    info "  Email: #{user.email}"
-    info "  Password: #{user.password}"
-    info "  Role: #{user.role.name}"
+    unless Role.exists?(name: u[:role], provider: u[:provider])
+      puts red "Invalid Role - Role does not exist"
+      exit 3 # 3 for invalid Role.
+    end
 
-    exit 0
+    u[:email].prepend "superadmin-" if args[:role] == "super_admin"
+
+    # Create account if it doesn't exist
+    if User.exists?(email: u[:email], provider: u[:provider])
+      puts red "  Account with that email already exists"
+      puts yellow "   Email: #{u[:email]}"
+      exit 4 # 4 for email in use.
+    else
+      validation = args[:validate] || "true"
+      user = User.new(name: u[:name], email: u[:email], password: u[:password],
+      provider: u[:provider], email_verified: true, accepted_terms: true)
+
+      unless user.save(validate: validation == "true") && user.valid?
+        puts red "Invalid Arguments"
+        puts yellow user.errors.messages
+        if user.errors.include? :password
+          puts green " The password must:"
+          puts cyan "    1. Be 8 charachters in length."
+          puts cyan "    2. Have at least 1 lowercase letter."
+          puts cyan "    3. Have at least 1 upercase letter."
+          puts cyan "    4. Have at least 1 digit."
+          puts cyan "    5. Have at least 1 non-alphanumeric character"
+        end
+        exit 5 # 5 for invalid User.
+      end
+
+      user.set_role(u[:role])
+
+      puts green "  Account successfully created."
+      puts cyan "   Email: #{u[:email]}"
+      puts cyan "   Password: #{u[:password]}"
+      puts cyan "   Role: #{u[:role]}"
+      puts yellow " PLEASE CHANGE YOUR PASSWORD IMMEDIATELY" if u[:password] == Rails.configuration.admin_password_default
+    end
   end
 
-  private
+  task :social_uid, [:provider] => :environment do |_task, args|
+    args.with_defaults(provider: "greenlight")
 
-  def check_role!(user:)
-    role_name = user[:role]
-    user[:role] = Role.find_by(name: role_name, provider: 'greenlight')
-    return if user[:role]
-
-    warning "Unable to create user: '#{user[:name]}'"
-    err "   Role '#{role_name}' does not exist, maybe you have not run the DB migrations?"
-  end
-
-  def display_user_errors(user:)
-    warning "Unable to create user: '#{user.name}'"
-    err "   Failed to pass the following validations:\n    #{user.errors.to_a}"
+    User.where(provider: args[:provider]).each do |user|
+      if user.update(social_uid: "#{args[:provider]}:#{user.email}")
+        puts green "Updated #{user.email} to #{args[:provider]}:#{user.email}"
+      end
+    end
   end
 end
